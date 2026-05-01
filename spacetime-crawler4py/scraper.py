@@ -1,11 +1,19 @@
+import os
 import re
 import json
 import hashlib
+import dbm
+import dbm.ndbm
 from urllib.parse import urlparse, urlunparse, urljoin
 from bs4 import BeautifulSoup
 
-ANALYTICS_FILE = "Analytics.json"
-VISITED_FILE = "Visited.json"
+# Force ndbm backend so shelve works across threads (Python 3.14 defaults to
+# sqlite3 which disallows cross-thread access, breaking the frontier worker)
+dbm._defaultmod = dbm.ndbm
+
+_DIR = os.path.dirname(os.path.abspath(__file__))
+ANALYTICS_FILE = os.path.join(_DIR, "Analytics.json")
+VISITED_FILE = os.path.join(_DIR, "Visited.json")
 
 STOP_WORDS = {
     "a", "about", "above", "after", "again", "against", "all", "am", "an", "and",
@@ -26,10 +34,10 @@ STOP_WORDS = {
 
 
 ALLOWED_DOMAINS = (
-    r".*\.ics\.uci\.edu$",
-    r".*\.cs\.uci\.edu$",
-    r".*\.informatics\.uci\.edu$",
-    r".*\.stat\.uci\.edu$",
+    r"(.*\.)?ics\.uci\.edu$",
+    r"(.*\.)?cs\.uci\.edu$",
+    r"(.*\.)?informatics\.uci\.edu$",
+    r"(.*\.)?stat\.uci\.edu$",
 )
 
 
