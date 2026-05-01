@@ -1,0 +1,5 @@
+.venv/
+Logs/
+frontier.shelve*
+spacetime-crawler4py/Analytics.json
+spacetime-crawler4py/Visited.json
