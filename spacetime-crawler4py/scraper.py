@@ -123,8 +123,12 @@ def extract_next_links(url, resp):
     links = []
     for tag in soup.find_all("a", href=True):
         href = tag["href"].strip()
-        if href:
+        if not href:
+            continue
+        try:
             links.append(_defragment(urljoin(resp.url, href)))
+        except (ValueError, TypeError):
+            continue
 
     if defrag_url in visited["urls"]:
         return links
