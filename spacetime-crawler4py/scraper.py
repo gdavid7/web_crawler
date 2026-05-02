@@ -40,6 +40,12 @@ ALLOWED_DOMAINS = (
     r"(.*\.)?stat\.uci\.edu$",
 )
 
+# Subdomains that aren't academic content (server monitoring, dev infra, etc.)
+EXCLUDED_HOSTS = {
+    "dale-cooper-v0.ics.uci.edu",  # nginx/php-fpm status pages
+    "helpdesk.ics.uci.edu",        # IT support ticket system, likely contains PII
+}
+
 
 def _load_json(path): # used for loading the analytics and website JSONs
     with open(path) as f:
@@ -87,8 +93,14 @@ def _is_trap(parsed): # If its a trap then we have to get out of it
     # Too many query parameters
     if parsed.query.count("&") > 3:
         return True
-    # DokuWiki media manager trap
-    if "do=media" in parsed.query:
+    # DokuWiki: only the canonical view (no query, or just id=) is content.
+    # Everything else (do=*, idx=*, rev=*, at=*, etc.) is a metadata/action variant.
+    if "doku.php" in parsed.path and parsed.query:
+        params = {q.split("=")[0] for q in parsed.query.split("&") if q}
+        if params - {"id"}:
+            return True
+    # CSS theme variants — pure styling, never content
+    if "skin=" in parsed.query:
         return True
     return False
 
@@ -106,13 +118,18 @@ def extract_next_links(url, resp):
 
     defrag_url = _defragment(url)
     visited = _load_json(VISITED_FILE)
+    soup = BeautifulSoup(resp.raw_response.content, "lxml")
+
+    links = []
+    for tag in soup.find_all("a", href=True):
+        href = tag["href"].strip()
+        if href:
+            links.append(_defragment(urljoin(resp.url, href)))
 
     if defrag_url in visited["urls"]:
-        return []
+        return links
 
     visited["urls"][defrag_url] = True
-
-    soup = BeautifulSoup(resp.raw_response.content, "lxml")
     tokens = _tokenize(soup.get_text())
 
     analytics = _load_json(ANALYTICS_FILE)
@@ -147,11 +164,6 @@ def extract_next_links(url, resp):
     if is_near_dup:
         return []
 
-    links = []
-    for tag in soup.find_all("a", href=True):
-        href = tag["href"].strip()
-        if href:
-            links.append(_defragment(urljoin(resp.url, href)))
     return links
 
 
@@ -161,6 +173,8 @@ def is_valid(url):
         if parsed.scheme not in {"http", "https"}:
             return False
         if not any(re.match(pat, parsed.netloc.lower()) for pat in ALLOWED_DOMAINS):
+            return False
+        if parsed.netloc.lower() in EXCLUDED_HOSTS:
             return False
         if _is_trap(parsed):
             return False
