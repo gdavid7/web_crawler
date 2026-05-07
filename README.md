@@ -15,7 +15,6 @@ If you need to recreate it:
 python3 -m venv .venv
 .venv/bin/pip install spacetime-crawler4py/packages/spacetime-2.1.1-py3-none-any.whl
 .venv/bin/pip install -r spacetime-crawler4py/packages/requirements.txt
-.venv/bin/pip install beautifulsoup4 lxml
 ```
 
 ## Running the Crawler
