@@ -181,8 +181,11 @@ def _is_trap(parsed):
     # WordPress comment-reply / share permalinks blow up combinatorially
     if re.search(r"(^|&)(replytocom|share|like_comment|unapproved)=", query):
         return True
-    # Calendar/event paginators
-    if re.search(r"(^|&)(year|month|day|week|tribe-bar-date|eventDisplay|outlook-ical)=", query, re.IGNORECASE):
+    # Calendar/event paginators + iCal feed exports (no content, just .ics data)
+    if re.search(r"(^|&)(year|month|day|week|tribe-bar-date|eventDisplay|ical|outlook-ical)=", query, re.IGNORECASE):
+        return True
+    # Bare blog/category paginators (/page/N) — duplicate-of-source-list, low info
+    if re.search(r"/page/\d+/?$", path_lower):
         return True
     # Apache mod_autoindex sort variants (?C=N;O=A etc.)
     if re.search(r"[?&;](C|O|F|V|P)=[A-Z]", parsed.query + ";"):
